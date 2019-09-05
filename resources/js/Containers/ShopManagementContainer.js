@@ -1,12 +1,15 @@
 import {connect} from "react-redux"
 import ShopManagement from "../components/ShopManagement"
-import {loadInitData} from "../actions/ShopManagementActions"
+import {loadInitData, updateRuntime} from "../actions/ShopManagementActions"
 
 const mapStateToProps = state => {
-    const { webSocketUrl, products } = state.shopMangementReducer
+    const { wsChannel, products } = state.shopManagementReducer
+    const {shops, storage} = state.runtimeReducer
     return {
-        webSocketUrl,
-        products
+        wsChannel,
+        products,
+        shops,
+        storage
     }
 }
 
@@ -15,8 +18,8 @@ const mapDispatchToProps = (dispatch, ownProps) => {
         onInit() {
             dispatch(loadInitData())
         },
-        handleWebSocket: (socketData) => {
-            console.log(socketData)
+        handleSessionTick: (eventData) => {
+            dispatch(updateRuntime(eventData))
         }
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\ShopType;
 use Illuminate\Database\Seeder;
 
 class ShopTypeSeeder extends Seeder
@@ -13,23 +14,23 @@ class ShopTypeSeeder extends Seeder
     {
         $shopTypes = [
             [
-                'id' => DatabaseSeeder::SHOP_TYPE_FOOD,
+                'id' => ShopType::SHOP_TYPE_FOOD,
                 'name' => 'Продуктовый'
             ],
             [
-                'id' => DatabaseSeeder::SHOP_TYPE_HOME,
+                'id' => ShopType::SHOP_TYPE_HOME,
                 'name' => 'Хозяйственный'
             ],
             [
-                'id' => DatabaseSeeder::SHOP_TYPE_BUILD,
+                'id' => ShopType::SHOP_TYPE_BUILD,
                 'name' => 'Строительный'
             ],
             [
-                'id' => DatabaseSeeder::SHOP_TYPE_BUILD_HOME,
+                'id' => ShopType::SHOP_TYPE_BUILD_HOME,
                 'name' => 'Строительно-хозяйственный'
             ],
             [
-                'id' => DatabaseSeeder::SHOP_TYPE_FOOD_HOME,
+                'id' => ShopType::SHOP_TYPE_FOOD_HOME,
                 'name' => 'Продуктово-хозяйственный'
             ],
         ];

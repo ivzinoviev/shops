@@ -1,5 +1,5 @@
 import axios from "axios"
-import {shop_management__init} from "./Actions"
+import {runtime__update, shop_management__init} from "./Actions"
 const LOAD_INIT_URL = '/api/init'
 
 export function loadInitData() {
@@ -14,6 +14,13 @@ export function loadInitData() {
 function addInitData(data) {
     return {
         type: shop_management__init,
+        data
+    }
+}
+
+export function updateRuntime(data) {
+    return {
+        type: runtime__update,
         data
     }
 }

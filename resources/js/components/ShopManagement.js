@@ -1,5 +1,5 @@
 import React from 'react';
-import {Websocket} from "react-websocket"
+import Pusher from 'react-pusher';
 import ProductsStorage from "./ProductsStorage"
 
 export default class ShopManagement extends React.Component {
@@ -13,6 +13,7 @@ export default class ShopManagement extends React.Component {
                 <div className="col-9">
                     <ProductsStorage
                         products={this.props.products}
+                        storage={this.props.storage}
                     />
                 </div>
                 <div className="col-3">
@@ -38,7 +39,11 @@ export default class ShopManagement extends React.Component {
                     </div>
                 </div>
             </div>
-            { this.props.webSocketUrl && <Websocket url={this.props.webSocketUrl} onMessage={this.props.handleWebSocket}/>}
+            { this.props.wsChannel && <Pusher
+                channel={this.props.wsChannel}
+                event="App\Events\SessionTick"
+                onUpdate={({data}) => {this.props.handleSessionTick(data)}}
+            /> }
         </div>
     }
 }

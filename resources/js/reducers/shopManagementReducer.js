@@ -3,16 +3,16 @@ import {shop_management__init} from "../actions/Actions"
 const baseState = {
     products: [],
     shopTypes: [],
-    store: [],
-    shops: [],
 }
 
-export default function shopMangementReducer (state = baseState, action) {
+export default function shopManagementReducer (state = baseState, action) {
     switch (action.type) {
         case shop_management__init:
             return {
                 ...state,
-                ...action.data
+                products: action.data.products,
+                shopTypes: action.shopTypes,
+                wsChannel: action.wsChannel
             }
     }
 

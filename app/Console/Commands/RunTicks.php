@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
 
 class RunTicks extends Command
 {
@@ -20,7 +21,7 @@ class RunTicks extends Command
      *
      * @var string
      */
-    protected $description = 'Run application ticks';
+    protected $description = 'Run application logic';
 
     /**
      * Create a new command instance.
@@ -43,10 +44,10 @@ class RunTicks extends Command
         $nextTime   = microtime(true) + self::TICK_RATE; // Set initial delay
 
         while($active) {
-            usleep(1000); // optional, if you want to be considerate
+            usleep(1000);
 
             if (microtime(true) >= $nextTime) {
-                echo 'DO JOB' . PHP_EOL; // TODO: Run one tick command
+                Artisan::call('run:tick'); // TODO: use queue!
                 $nextTime = microtime(true) + self::TICK_RATE;
             }
         }

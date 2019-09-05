@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Session;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -10,13 +11,16 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 
-class SessionTick
+class SessionTick implements ShouldBroadcast
 {
+    const CHANNEL_PREFIX = 'tick.';
+
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $data;
 
     public $sessionId;
+
 
     /**
      * Create a new event instance.
@@ -38,6 +42,10 @@ class SessionTick
     public function broadcastOn()
     {
         // TODO: May use PrivateChannel
-        return new Channel('tick.' . $this->sessionId);
+        return new Channel(self::getChannelName($this->sessionId));
+    }
+
+    static function getChannelName($sessionId) {
+        return self::CHANNEL_PREFIX . md5($sessionId);
     }
 }

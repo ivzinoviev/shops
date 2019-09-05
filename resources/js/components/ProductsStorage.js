@@ -9,10 +9,19 @@ export default class ProductsStorage extends React.Component {
                 </div>
                 <div className="card-body">
                     <p className="card-text">Список товаров на складе</p>
-                    <div style={{columns: '140px'}}>
-                        { this.props.products.map(product => <Product {...product}  key={product.id} />) }
+                    <div style={{columns: '150px'}}>
+                        { this.props.products.map(product => <Product
+                            {...product}
+                            key={product.id}
+                            count={getStorageProductsCount(this.props.storage, product.id)}
+                        />) }
                     </div>
                 </div>
             </div>
     }
+}
+
+function getStorageProductsCount(storage = [], productId) {
+    const prod = storage.find(product => product.id === productId)
+    return prod ? prod.count : 0
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\ProductType;
 use Illuminate\Database\Seeder;
 
 class ProductTypeSeeder extends Seeder
@@ -13,15 +14,15 @@ class ProductTypeSeeder extends Seeder
     {
         $productTypes = [
             [
-                'id' => DatabaseSeeder::PROD_TYPE_FOOD,
+                'id' => ProductType::PROD_TYPE_FOOD,
                 'name' => 'Продукт питания'
             ],
             [
-                'id' => DatabaseSeeder::PROD_TYPE_BUILD,
+                'id' => ProductType::PROD_TYPE_BUILD,
                 'name' => 'Стройматериал'
             ],
             [
-                'id' => DatabaseSeeder::PROD_TYPE_HOME,
+                'id' => ProductType::PROD_TYPE_HOME,
                 'name' => 'Товар для дома'
             ],
         ];

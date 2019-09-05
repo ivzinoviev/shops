@@ -1,6 +1,8 @@
 import {combineReducers} from "redux"
-import shopMangementReducer from "./shopMangementReducer"
+import shopManagementReducer from "./shopManagementReducer"
+import runtimeReducer from "./runtimeReducer"
 
 export default combineReducers({
-    shopMangementReducer
+    shopManagementReducer,
+    runtimeReducer
 });
