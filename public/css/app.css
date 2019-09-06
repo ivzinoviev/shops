@@ -1,0 +1,10 @@
+.not-break-columns {
+  margin: 0;
+  /* Chrome, Safari */
+  page-break-inside: avoid;
+  /* Theoretically FF 20+ */
+  -moz-column-break-inside: avoid;
+       break-inside: avoid-column;
+  /* IE 11 */
+}
+

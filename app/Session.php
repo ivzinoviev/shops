@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Cache;
 
 class Session extends Model
 {
+    protected $sessionRuntime;
+
     public function getId() {
         return $this->attributes['id'];
     }
@@ -15,11 +17,17 @@ class Session extends Model
     // 1) It requires less complicated logic then store data in sessions of not current user
     // 2) We can improve performance using fast cache solution
     function updateRuntime(callable $action) {
-        Cache::put($this->getCacheKey(), $action($this->getRuntime()), config('session.lifetime') * 60);
+        $action($this->getRuntime());
+
+        Cache::put($this->getCacheKey(), $this->getRuntime()->toArray(), config('session.lifetime') * 60);
     }
 
     function getRuntime() {
-        return Cache::get($this->getCacheKey(), new SessionRuntime());
+        if (!$this->sessionRuntime) {
+            $this->sessionRuntime = new SessionRuntime(Cache::get($this->getCacheKey(), []));
+        }
+
+        return $this->sessionRuntime;
     }
 
     protected function getCacheKey() {

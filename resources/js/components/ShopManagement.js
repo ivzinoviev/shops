@@ -1,6 +1,9 @@
 import React from 'react';
 import Pusher from 'react-pusher';
 import ProductsStorage from "./ProductsStorage"
+import Shops from "./Shops"
+import ShopCreate from "./ShopCreate"
+import {DragDropContext} from "react-beautiful-dnd"
 
 export default class ShopManagement extends React.Component {
     componentDidMount() {
@@ -8,35 +11,25 @@ export default class ShopManagement extends React.Component {
     }
 
     render() {
-        return <div className="container pt-5">
+        return <DragDropContext onDragEnd={e => {console.log("DRAG END", e)}}>
+            <div className="container pt-5">
             <div className="row">
                 <div className="col-9">
                     <ProductsStorage
-                        products={this.props.products}
+                        // products={this.props.products}
                         storage={this.props.storage}
                     />
                 </div>
                 <div className="col-3">
-                    <div className="card">
-                        <div className="card-header">
-                            <h5 className="card-title">Создать магазин</h5>
-                        </div>
-                        <div className="card-body">
-
-                        </div>
-                    </div>
+                    <ShopCreate />
                 </div>
             </div>
             <div className="row pt-5">
                 <div className="col">
-                    <div className="card">
-                        <div className="card-header">
-                            <h5 className="card-title">Список магазинов</h5>
-                        </div>
-                        <div className="card-body">
-
-                        </div>
-                    </div>
+                    <Shops
+                        shops={this.props.shops}
+                        getDraggingItem={this.props.getDraggingItem}
+                    />
                 </div>
             </div>
             { this.props.wsChannel && <Pusher
@@ -45,5 +38,6 @@ export default class ShopManagement extends React.Component {
                 onUpdate={({data}) => {this.props.handleSessionTick(data)}}
             /> }
         </div>
+        </DragDropContext>
     }
 }

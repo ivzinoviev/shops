@@ -48,19 +48,8 @@ class Tick extends Command
         Session::all()->each(function(Session $session) {
             $this->sessionRuntimeController->doShopping($session);
 
-            /** @var SessionRuntime $runtime */
-            $runtime = $session->getRuntime();
-
-            event(new SessionTick($session->getId(), [
-                'storageProductsCount' => $runtime->getAttribute('storage'),
-//                'shopsProductsCount' => [[
-//                    'shop_id' => 1,
-//                    [
-//                        'id' => 1,
-//                        'count' => 1000
-//                    ]
-//                ]]
-            ]));
+            event(new SessionTick($session->getId(), $session->getRuntime()->getDiff()
+            ));
         });
     }
 }

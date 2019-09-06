@@ -15,8 +15,8 @@ export default function runtimeReducer (state = baseState, action) {
         case runtime__update:
             return {
                 ...state,
-                shops: mergeShopsList(state.shops, action.data.shops),
-                storage: mergeProductsList(state.storage, action.data.storage)
+                shops: action.data.shops ? mergeShopsList(state.shops, action.data.shops) : state.shops,
+                storage: action.data.storage ? mergeProductsList(state.storage, action.data.storage) : state.storage
             }
     }
     return state;
@@ -27,7 +27,7 @@ function mergeProductsList(before, updated) {
         ...before.map(beforeItem => {
             const newValue = updated.find(updatedItem => updatedItem.id === beforeItem.id)
             return newValue ? newValue : beforeItem
-        }), // TODO: implement delete attribute via filter
+        }),
         ...updated.filter(updatedItem => !before.some(beforeItem => beforeItem.id === updatedItem.id))
     ]
 }
@@ -37,10 +37,10 @@ function mergeShopsList(before, updated) {
         ...before.map(beforeItem => {
             const updatedShop = updated.find(updatedItem => updatedItem.id === beforeItem.id)
             if (updatedShop) {
-                before.products = mergeProductsList(before.products, updated.products)
+                beforeItem.products = mergeProductsList(beforeItem.products, updatedShop.products)
             }
 
-            return before
+            return beforeItem
         }),
         ...updated.filter(updatedItem => !before.some(beforeItem => beforeItem.id === updatedItem.id))
     ]

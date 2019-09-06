@@ -11,8 +11,8 @@ export default function shopManagementReducer (state = baseState, action) {
             return {
                 ...state,
                 products: action.data.products,
-                shopTypes: action.shopTypes,
-                wsChannel: action.wsChannel
+                shopTypes: action.data.shopTypes,
+                wsChannel: action.data.wsChannel
             }
     }
 
