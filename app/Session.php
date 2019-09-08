@@ -33,4 +33,8 @@ class Session extends Model
     protected function getCacheKey() {
         return 'session_' . $this->getId();
     }
+
+    public static function getCurrent() {
+        return Session::find(session()->getId());
+    }
 }

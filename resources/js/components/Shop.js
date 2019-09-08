@@ -10,16 +10,17 @@ export default class Shop extends React.Component {
             .filter(product => !(product.soldOutAt && moment().diff(moment(product.soldOutAt), 'seconds') > 10));
 
         return <Droppable droppableId={'shop_' + this.props.id}>
-            {(provided, snapshot) =>
-                <div className={classnames({
+            {(provided, snapshot) => {
+                const draggedValid = snapshot.isDraggingOver && this.props.productTypes && this.props.productTypes.includes(this.props.getDraggingItem(snapshot.draggingOverWith).product_type_id)
+                return <div className={classnames({
                         "card not-break-columns mb-3": true,
-                        "bg-secondary": snapshot.isDraggingOver,
+                        "bg-light": snapshot.isDraggingOver,
                     })} ref={provided.innerRef} {...provided.droppableProps}>
                     <div className={
                         classnames({
                             "card-header": true,
-                            "bg-danger": snapshot.isDraggingOver,
-                            "bg-success": snapshot.isDraggingOver && this.props.productTypes && this.props.productTypes.includes(this.props.getDraggingItem(snapshot.draggingOverWith).product_type_id) && console.log(this.props.getDraggingItem(snapshot.draggingOverWith), this.props.productTypes)
+                            "bg-success": draggedValid,
+                            "bg-danger": snapshot.isDraggingOver && !draggedValid,
                         })
                     }>
                         <h6 className="card-title">{this.props.name}</h6>
@@ -31,10 +32,9 @@ export default class Shop extends React.Component {
                         />)}
                         {!products.length && <div className="alert alert-secondary" role="alert">Товаров нет</div>}
                     </div>
-                    {console.log(snapshot)}
                     <div style={{ display: 'none' }}>{provided.placeholder}</div>
                 </div>
-                }
+                }}
         </Droppable>
     }
 }

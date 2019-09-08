@@ -50,6 +50,14 @@ class SessionRuntime extends Model
         ]);
     }
 
+    protected function updateStorageProducts($updatedProducts) {
+        $this->storage = mergeProducts($this->storage, $updatedProducts);
+
+        $this->addDiff([
+            'storage' => $updatedProducts
+        ]);
+    }
+
     public function __construct(array $attributes = [])
     {
         parent::__construct(array_merge(SessionRuntime::getDefaultAttributes(),$attributes));
@@ -76,6 +84,37 @@ class SessionRuntime extends Model
         }
 
         $this->updateShopProducts($shop['id'], [$product]);
+    }
+
+    public function restock(Restock $restock) {
+        $shop = $this->shops[findIndexById($restock->getAttribute('shopId'), $this->getAttribute('shops'))];
+        $storageProduct = $this->storage[findIndexById($restock->getAttribute('productId'), $this->getAttribute('storage'))];
+        $shopProduct = $shop['products'][findIndexById($restock->productId, $shop['products'])] ?: [ // TODO: USE MODEL
+            'id' => $restock->productId,
+            'count' => 0
+        ];
+
+        $storageProduct['count'] = $storageProduct['count'] - $restock->amount;
+        $shopProduct['count'] = $shopProduct['count'] + $restock->amount;
+        $shopProduct['lastAddAt'] = Carbon::now()->toAtomString();
+
+        $this->updateShopProducts($shop['id'], [$shopProduct]);
+
+        $this->updateStorageProducts([$storageProduct]);
+    }
+
+    public function getStorageStockCount($productId) {
+        $stock = $this->storage[findIndexById($productId, $this->storage)];
+        return $stock ? $stock['count'] : 0;
+    }
+
+    public function isShopAllowProduct($shopId, $productId) {
+        $shop = $this->shops[findIndexById($shopId, $this->shops)];
+        $product = Product::find($productId);
+        if ($shop && $product) {
+            return in_array($product->getAttribute('product_type_id'), $shop['productTypes']);
+        }
+        return false;
     }
 
     static private function getDefaultAttributes() {

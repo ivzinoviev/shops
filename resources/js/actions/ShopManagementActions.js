@@ -1,6 +1,7 @@
 import axios from "axios"
 import {runtime__update, shop_management__init} from "./Actions"
 const LOAD_INIT_URL = '/api/init'
+const RESTOCK_URL = '/api/restock'
 
 export function loadInitData() {
     return dispatch => {
@@ -22,5 +23,14 @@ export function updateRuntime(data) {
     return {
         type: runtime__update,
         data
+    }
+}
+
+export function restock(productId, shopId) {
+    return dispatch => {
+        axios.post(RESTOCK_URL, {productId, shopId})
+            .then(() => {}).catch(e => {
+                // TODO
+        })
     }
 }

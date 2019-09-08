@@ -6,7 +6,6 @@ use App\Events\SessionTick;
 use App\Product;
 use App\Session;
 use App\ShopType;
-use Illuminate\Http\Request;
 
 class AppController extends Controller
 {

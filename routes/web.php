@@ -16,3 +16,4 @@ Route::get('/', function () {
 });
 
 Route::get('/api/init', 'AppController@getInitData');
+Route::post('/api/restock', 'SessionRuntimeController@restock');

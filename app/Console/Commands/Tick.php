@@ -47,9 +47,7 @@ class Tick extends Command
     {
         Session::all()->each(function(Session $session) {
             $this->sessionRuntimeController->doShopping($session);
-
-            event(new SessionTick($session->getId(), $session->getRuntime()->getDiff()
-            ));
+            event(new SessionTick($session->getId(), $session->getRuntime()->getDiff()));
         });
     }
 }

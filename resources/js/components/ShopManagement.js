@@ -11,7 +11,7 @@ export default class ShopManagement extends React.Component {
     }
 
     render() {
-        return <DragDropContext onDragEnd={e => {console.log("DRAG END", e)}}>
+        return <DragDropContext onDragEnd={this.props.handleDrop}>
             <div className="container pt-5">
             <div className="row">
                 <div className="col-9">

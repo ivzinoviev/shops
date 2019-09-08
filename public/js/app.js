@@ -89055,10 +89055,7 @@ var mapStateToProps = function mapStateToProps(state) {
     shops: mapShopsProducts(shops, products),
     storage: mapProducts(storage, products),
     getDraggingItem: function getDraggingItem(itemId) {
-      // TODO!!!
-      return {
-        product_type_id: 1
-      };
+      return resolveDragId(itemId, products, shops);
     }
   };
 };
@@ -89070,6 +89067,11 @@ var mapDispatchToProps = function mapDispatchToProps(dispatch, ownProps) {
     },
     handleSessionTick: function handleSessionTick(eventData) {
       dispatch(Object(_actions_ShopManagementActions__WEBPACK_IMPORTED_MODULE_2__["updateRuntime"])(eventData));
+    },
+    handleDrop: function handleDrop(_ref) {
+      var draggableId = _ref.draggableId,
+          destination = _ref.destination;
+      destination.droppableId !== 'storage' && dispatch(Object(_actions_ShopManagementActions__WEBPACK_IMPORTED_MODULE_2__["restock"])(getDragIdNumber(draggableId), getDragIdNumber(destination.droppableId)));
     }
   };
 };
@@ -89091,6 +89093,25 @@ function mapProducts(storage, products) {
     }) || {};
     return _objectSpread({}, product, {}, storageProduct);
   });
+}
+
+function resolveDragId(itemId, products, shops) {
+  if (itemId.startsWith('product_')) {
+    return products.find(function (product) {
+      return product.id === getDragIdNumber(itemId);
+    });
+  }
+
+  if (itemId.startsWith('shop_')) {
+    return shops.find(function (shop) {
+      return shop.id === getDragIdNumber(itemId);
+    });
+  }
+}
+
+function getDragIdNumber(itemId) {
+  var itemNumber = itemId.match(/\d+/g);
+  return itemNumber ? parseInt(itemNumber[0]) : itemNumber;
 }
 
 /***/ }),
@@ -89115,19 +89136,21 @@ var runtime__update = 'RUNTIME/UPDATE';
 /*!*******************************************************!*\
   !*** ./resources/js/actions/ShopManagementActions.js ***!
   \*******************************************************/
-/*! exports provided: loadInitData, updateRuntime */
+/*! exports provided: loadInitData, updateRuntime, restock */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "loadInitData", function() { return loadInitData; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "updateRuntime", function() { return updateRuntime; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "restock", function() { return restock; });
 /* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! axios */ "./node_modules/axios/index.js");
 /* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(axios__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _Actions__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Actions */ "./resources/js/actions/Actions.js");
 
 
 var LOAD_INIT_URL = '/api/init';
+var RESTOCK_URL = '/api/restock';
 function loadInitData() {
   return function (dispatch) {
     axios__WEBPACK_IMPORTED_MODULE_0___default.a.get(LOAD_INIT_URL).then(function (_ref) {
@@ -89148,6 +89171,15 @@ function updateRuntime(data) {
   return {
     type: _Actions__WEBPACK_IMPORTED_MODULE_1__["runtime__update"],
     data: data
+  };
+}
+function restock(productId, shopId) {
+  return function (dispatch) {
+    axios__WEBPACK_IMPORTED_MODULE_0___default.a.post(RESTOCK_URL, {
+      productId: productId,
+      shopId: shopId
+    }).then(function () {})["catch"](function (e) {// TODO
+    });
   };
 }
 
@@ -89201,7 +89233,7 @@ window.axios = __webpack_require__(/*! axios */ "./node_modules/axios/index.js")
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 
-var pusherClient = new pusher_js__WEBPACK_IMPORTED_MODULE_1___default.a("test_app_key", {
+var pusherClient = new pusher_js__WEBPACK_IMPORTED_MODULE_1___default.a("test_key_321", {
   cluster: "ru",
   disableStats: true,
   wsHost: "localhost",
@@ -89541,17 +89573,19 @@ function (_React$Component) {
       return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(react_beautiful_dnd__WEBPACK_IMPORTED_MODULE_3__["Droppable"], {
         droppableId: 'shop_' + this.props.id
       }, function (provided, snapshot) {
+        var draggedValid = snapshot.isDraggingOver && _this.props.productTypes && _this.props.productTypes.includes(_this.props.getDraggingItem(snapshot.draggingOverWith).product_type_id);
+
         return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", _extends({
           className: classnames__WEBPACK_IMPORTED_MODULE_4__({
             "card not-break-columns mb-3": true,
-            "bg-secondary": snapshot.isDraggingOver
+            "bg-light": snapshot.isDraggingOver
           }),
           ref: provided.innerRef
         }, provided.droppableProps), react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
           className: classnames__WEBPACK_IMPORTED_MODULE_4__({
             "card-header": true,
-            "bg-danger": snapshot.isDraggingOver,
-            "bg-success": snapshot.isDraggingOver && _this.props.productTypes && _this.props.productTypes.includes(_this.props.getDraggingItem(snapshot.draggingOverWith).product_type_id) && console.log(_this.props.getDraggingItem(snapshot.draggingOverWith), _this.props.productTypes)
+            "bg-success": draggedValid,
+            "bg-danger": snapshot.isDraggingOver && !draggedValid
           })
         }, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("h6", {
           className: "card-title"
@@ -89564,7 +89598,7 @@ function (_React$Component) {
         }), !products.length && react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
           className: "alert alert-secondary",
           role: "alert"
-        }, "\u0422\u043E\u0432\u0430\u0440\u043E\u0432 \u043D\u0435\u0442")), console.log(snapshot), react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
+        }, "\u0422\u043E\u0432\u0430\u0440\u043E\u0432 \u043D\u0435\u0442")), react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
           style: {
             display: 'none'
           }
@@ -89715,9 +89749,7 @@ function (_React$Component) {
       var _this = this;
 
       return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(react_beautiful_dnd__WEBPACK_IMPORTED_MODULE_5__["DragDropContext"], {
-        onDragEnd: function onDragEnd(e) {
-          console.log("DRAG END", e);
-        }
+        onDragEnd: this.props.handleDrop
       }, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
         className: "container pt-5"
       }, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
@@ -90007,8 +90039,8 @@ function shopManagementReducer() {
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-__webpack_require__(/*! /home/dc/PhpstormProjects/shops/resources/js/app.js */"./resources/js/app.js");
-module.exports = __webpack_require__(/*! /home/dc/PhpstormProjects/shops/resources/sass/app.scss */"./resources/sass/app.scss");
+__webpack_require__(/*! /home/dc/shops/resources/js/app.js */"./resources/js/app.js");
+module.exports = __webpack_require__(/*! /home/dc/shops/resources/sass/app.scss */"./resources/sass/app.scss");
 
 
 /***/ })
