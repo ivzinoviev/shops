@@ -19,8 +19,10 @@ export default class Shops extends React.Component {
                     {...shop}
                     key={shop.id}
                     getDraggingItem={this.props.getDraggingItem}
+                    handleShopDelete={this.props.handleShopDelete}
                 />) }
                 </div>
+                {!this.props.shops.length && <div className="alert alert-secondary" role="alert">Магазинов нет</div>}
             </div>
         </div>
     }

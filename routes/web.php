@@ -17,3 +17,7 @@ Route::get('/', function () {
 
 Route::get('/api/init', 'AppController@getInitData');
 Route::post('/api/restock', 'SessionRuntimeController@restock');
+Route::get('/api/restart', 'SessionRuntimeController@restart');
+
+Route::delete('/api/shop', 'SessionRuntimeController@shopDelete');
+Route::post('/api/shop', 'SessionRuntimeController@shopCreate');

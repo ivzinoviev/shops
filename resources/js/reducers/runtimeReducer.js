@@ -37,11 +37,16 @@ function mergeShopsList(before, updated) {
         ...before.map(beforeItem => {
             const updatedShop = updated.find(updatedItem => updatedItem.id === beforeItem.id)
             if (updatedShop) {
-                beforeItem.products = mergeProductsList(beforeItem.products, updatedShop.products)
+                return mergeShops(beforeItem, updatedShop)
             }
 
             return beforeItem
         }),
         ...updated.filter(updatedItem => !before.some(beforeItem => beforeItem.id === updatedItem.id))
     ]
+}
+
+function mergeShops(before, {products, ...updated}) {
+    before.products = mergeProductsList(before.products, products)
+    return {...before, ...updated}
 }

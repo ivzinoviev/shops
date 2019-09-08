@@ -13,6 +13,6 @@ class ShopType extends Model
     const SHOP_TYPE_FOOD_HOME = 5;
 
     public function productTypes() {
-        return $this->hasMany('App\ProductType');
+        return $this->belongsToMany('App\ProductType', 'shop_type_to_product_type');
     }
 }

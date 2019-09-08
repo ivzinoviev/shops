@@ -41,7 +41,7 @@ class SessionTick implements ShouldBroadcast
      */
     public function broadcastOn()
     {
-        // TODO: May use PrivateChannel
+        // TODO: Can use PrivateChannel
         return new Channel(self::getChannelName($this->sessionId));
     }
 

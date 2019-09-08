@@ -4,6 +4,7 @@ import ProductsStorage from "./ProductsStorage"
 import Shops from "./Shops"
 import ShopCreate from "./ShopCreate"
 import {DragDropContext} from "react-beautiful-dnd"
+import RestartButton from "./RestartButton";
 
 export default class ShopManagement extends React.Component {
     componentDidMount() {
@@ -14,14 +15,20 @@ export default class ShopManagement extends React.Component {
         return <DragDropContext onDragEnd={this.props.handleDrop}>
             <div className="container pt-5">
             <div className="row">
-                <div className="col-9">
+                <div className="col-8">
                     <ProductsStorage
-                        // products={this.props.products}
                         storage={this.props.storage}
                     />
                 </div>
-                <div className="col-3">
-                    <ShopCreate />
+                <div className="col-4">
+                    <RestartButton
+                        handleRestart={this.props.handleRestart}
+                    />
+                   <ShopCreate
+                        shopTypes={this.props.shopTypes}
+                        shopCreate={this.props.shopCreate}
+                        shopsCount={this.props.shops.length}
+                    />
                 </div>
             </div>
             <div className="row pt-5">
@@ -29,6 +36,7 @@ export default class ShopManagement extends React.Component {
                     <Shops
                         shops={this.props.shops}
                         getDraggingItem={this.props.getDraggingItem}
+                        handleShopDelete={this.props.handleShopDelete}
                     />
                 </div>
             </div>
@@ -38,6 +46,6 @@ export default class ShopManagement extends React.Component {
                 onUpdate={({data}) => {this.props.handleSessionTick(data)}}
             /> }
         </div>
-        </DragDropContext>
+        // </DragDropContext>
     }
 }

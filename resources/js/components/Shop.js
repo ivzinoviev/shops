@@ -3,6 +3,7 @@ import Product from "./Product"
 import moment from "moment"
 import {Droppable} from "react-beautiful-dnd"
 import * as classnames from "classnames"
+import ShopDeleteButton from "./ShopDeleteButton";
 
 export default class Shop extends React.Component {
     render() {
@@ -23,7 +24,11 @@ export default class Shop extends React.Component {
                             "bg-danger": snapshot.isDraggingOver && !draggedValid,
                         })
                     }>
-                        <h6 className="card-title">{this.props.name}</h6>
+                        <h6 className="card-title float-left pt-1">{this.props.name}</h6>
+                        <ShopDeleteButton
+                            handleShopDelete={this.props.handleShopDelete}
+                            shopId={this.props.id}
+                        />
                     </div>
                     <div className="card-body">
                         {products.map(product => <Product

@@ -17,8 +17,8 @@ class SessionRuntime extends Model
     protected $diff = [];
 
     protected function addDiff($data = []) {
-        if (isset($data['products'])) {
-            $data['products'] = mergeProducts($this->getDiffByKey('products'), $data['products']);
+        if (isset($data['storage'])) {
+            $data['storage'] = mergeProducts($this->getDiffByKey('storage'), $data['storage']);
         }
         if (isset($data['shops'])) {
             $data['shops'] = mergeShops($this->getDiffByKey('shops'), $data['shops']);
@@ -33,7 +33,7 @@ class SessionRuntime extends Model
 
     protected function findNonEmptyShops() {
         return array_filter($this->getAttribute('shops'), function ($shop) {
-            return isProductListNonEmpty($shop['products']);
+            return !isset($shop['deletedAt']) && isProductListNonEmpty($shop['products']);
         });
     }
 
@@ -89,7 +89,8 @@ class SessionRuntime extends Model
     public function restock(Restock $restock) {
         $shop = $this->shops[findIndexById($restock->getAttribute('shopId'), $this->getAttribute('shops'))];
         $storageProduct = $this->storage[findIndexById($restock->getAttribute('productId'), $this->getAttribute('storage'))];
-        $shopProduct = $shop['products'][findIndexById($restock->productId, $shop['products'])] ?: [ // TODO: USE MODEL
+        $productIndexInShop = findIndexById($restock->productId, $shop['products']);
+        $shopProduct = is_numeric($productIndexInShop) ? $shop['products'][$productIndexInShop] : [
             'id' => $restock->productId,
             'count' => 0
         ];
@@ -97,15 +98,57 @@ class SessionRuntime extends Model
         $storageProduct['count'] = $storageProduct['count'] - $restock->amount;
         $shopProduct['count'] = $shopProduct['count'] + $restock->amount;
         $shopProduct['lastAddAt'] = Carbon::now()->toAtomString();
+        if (isset($shopProduct['soldOutAt'])) {
+            $shopProduct['soldOutAt'] = null;
+        }
 
         $this->updateShopProducts($shop['id'], [$shopProduct]);
 
         $this->updateStorageProducts([$storageProduct]);
     }
 
+    public function deleteShop($shopId) {
+        $shopIndex = findIndexById($shopId, $this->shops);
+
+        $this->updateStorageProducts(array_map(function($shopProduct) {
+            $storageProduct = $this->storage[findIndexById($shopProduct['id'], $this->storage)];
+            $storageProduct['count'] = $storageProduct['count'] + $shopProduct['count'];
+            return $storageProduct;
+        }, $this->shops[$shopIndex]['products']));
+
+        $deletedShop = [
+            'id' => $shopId,
+            'deletedAt' => Carbon::now()->toAtomString(),
+            'products' => []
+        ];
+
+        $this->shops = mergeShops($this->shops, [$deletedShop]);
+
+        $this->addDiff(['shops' => [$deletedShop]]);
+    }
+
+    public function createShop($data) {
+        $newShop = [
+            'id' => max(array_column($this->shops, 'id')) + 1,
+            'products' => [],
+            'name' => $data['name'],
+            'productTypes' => ShopType::find($data['shopTypeId'])->productTypes->pluck('id')->toArray(),
+        ];
+        $newShop['products'] = [];
+        $this->shops = mergeShops($this->shops, [$newShop]);
+
+        $this->addDiff(['shops' => [$newShop]]);
+    }
+
     public function getStorageStockCount($productId) {
         $stock = $this->storage[findIndexById($productId, $this->storage)];
         return $stock ? $stock['count'] : 0;
+    }
+
+    public function isShopExists($shopId) {
+        $shop = $this->shops[findIndexById($shopId, $this->getAttribute('shops'))];
+
+        return is_array($shop) && !isset($shop['deletedAt']);
     }
 
     public function isShopAllowProduct($shopId, $productId) {
@@ -186,10 +229,20 @@ function mergeShops(array $before, array $updated) {
 
     $beforeUpdated = array_map(function($beforeItem) use ($updated) {
         $updatedShopIndex = array_search($beforeItem['id'], array_column($updated, 'id'));
-        if (is_numeric($updatedShopIndex) && isset($updated[$updatedShopIndex]['products'])) {
-            $beforeItem['products'] = mergeProducts($beforeItem['products'], $updated[$updatedShopIndex]['products']);
+
+        if (is_numeric($updatedShopIndex)) {
+            // If deleted - other data unnecessary
+            if (isset($updated[$updatedShopIndex]['deletedAt'])) {
+                return $updated[$updatedShopIndex];
+            }
+
+            if (isset($updated[$updatedShopIndex]['products'])) {
+                $beforeItem['products'] = mergeProducts($beforeItem['products'], $updated[$updatedShopIndex]['products']);
+            }
+
+            return array_merge($beforeItem,Arr::except($updated[$updatedShopIndex], 'products'));
         }
-        // TODO: update name & productTypes
+
         return $beforeItem;
     }, $before);
 

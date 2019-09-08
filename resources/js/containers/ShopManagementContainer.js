@@ -1,13 +1,14 @@
 import {connect} from "react-redux"
 import ShopManagement from "../components/ShopManagement"
-import {loadInitData, restock, updateRuntime} from "../actions/ShopManagementActions"
+import {loadInitData, restart, restock, shopCreate, shopDelete, updateRuntime} from "../actions/ShopManagementActions"
 
 const mapStateToProps = state => {
-    const { wsChannel, products } = state.shopManagementReducer
+    const { wsChannel, products, shopTypes } = state.shopManagementReducer
     const {shops, storage} = state.runtimeReducer
     return {
         wsChannel,
-        shops: mapShopsProducts(shops, products),
+        shopTypes,
+        shops: mapShopsProducts(filterDeleted(shops), products),
         storage: mapProducts(storage, products),
         getDraggingItem: (itemId) => {
             return resolveDragId(itemId, products, shops)
@@ -25,6 +26,17 @@ const mapDispatchToProps = (dispatch, ownProps) => {
         },
         handleDrop: ({draggableId, destination}) => {
             destination.droppableId !== 'storage' && dispatch(restock(getDragIdNumber(draggableId), getDragIdNumber(destination.droppableId)))
+        },
+        handleRestart: () => {
+            dispatch(restart(() => {
+                dispatch(loadInitData())
+            }))
+        },
+        handleShopDelete: shopId => {
+            dispatch(shopDelete(shopId))
+        },
+        shopCreate: (data, callback) => {
+            dispatch(shopCreate(data, callback))
         }
     }
 }
@@ -43,7 +55,7 @@ function mapShopsProducts(shops, products) {
     })
 }
 
-function mapProducts(storage, products) {
+function mapProducts(storage = [], products) {
     return storage.map(storageProduct => {
         const product = products.find(item => storageProduct.id === item.id) || {}
         return {...product, ...storageProduct}
@@ -62,4 +74,8 @@ function resolveDragId(itemId, products, shops) {
 function getDragIdNumber(itemId) {
     const itemNumber = itemId.match(/\d+/g)
     return itemNumber ? parseInt(itemNumber[0]) : itemNumber;
+}
+
+function filterDeleted(items) {
+    return items.filter(item => !item.deletedAt)
 }
