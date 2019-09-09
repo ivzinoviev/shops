@@ -22,15 +22,16 @@ const mapDispatchToProps = (dispatch, ownProps) => {
             dispatch(loadInitData())
         },
         handleSessionTick: (eventData) => {
+            if (eventData.doInit) {
+                dispatch(loadInitData())
+            }
             dispatch(updateRuntime(eventData))
         },
         handleDrop: ({draggableId, destination}) => {
             destination.droppableId !== 'storage' && dispatch(restock(getDragIdNumber(draggableId), getDragIdNumber(destination.droppableId)))
         },
         handleRestart: () => {
-            dispatch(restart(() => {
-                dispatch(loadInitData())
-            }))
+            dispatch(restart())
         },
         handleShopDelete: shopId => {
             dispatch(shopDelete(shopId))

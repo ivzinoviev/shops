@@ -53,6 +53,8 @@ class SessionRuntimeController extends Controller
         $session->updateRuntime(function() use (&$session) {
             $session->restartRuntime();
         });
+
+        event(new SessionTick($session->getId(), ['doInit' => true]));
     }
 
     public function shopDelete(Request $request) {

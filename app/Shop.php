@@ -11,17 +11,6 @@ class Shop extends Model
 
     public function __construct(array $attributes = [])
     {
-        if (!isset($attributes['products'])) {
-            $attributes['products'] = [];
-        }
-
-        $attributes['products'] = collect($attributes['products'])->map(function ($storedProduct) {
-            if ($storedProduct instanceof StoredProduct) {
-                return $storedProduct;
-            }
-            return new StoredProduct($storedProduct);
-        });
-
         parent::__construct($attributes);
     }
 
@@ -38,8 +27,11 @@ class Shop extends Model
     }
 
     public function updateProducts(Collection $updatedProducts) {
-//        dd($this->products, $updatedProducts);
         $this->products =  StoredProduct::mergeCollections($this->products, $updatedProducts);
+    }
+
+    public function getProductsAttribute($val) {
+        return is_object($val) ? $val : ($this->attributes['products'] = collect($val));
     }
 
     public function getProductById($productId) {
@@ -53,10 +45,7 @@ class Shop extends Model
     public function isAllowProduct($productId) {
         $product = Product::find($productId);
 
-        if ($product) {
-            return in_array($product->product_type_id, $this->productTypes);
-        }
-        return false;
+        return $product ? in_array($product->product_type_id, $this->productTypes) : false;
     }
 
     public static function mergeCollections(Collection $before, Collection $updated) {
@@ -78,7 +67,6 @@ class Shop extends Model
         });
 
         return collect($mergedExisted)->merge($updated)->keyBy(function($shop) {
-//            if (!($shop instanceof Shop)) dd($mergedExisted, $updated);
             return $shop->id;
         })->values();
     }

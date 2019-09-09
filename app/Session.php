@@ -19,12 +19,12 @@ class Session extends Model
     public function updateRuntime(callable $action) {
         $action($this->getRuntime());
 
-        Cache::put($this->getCacheKey(), $this->getRuntime()->toArray(), config('session.lifetime') * 60);
+        Cache::put($this->getCacheKey(), $this->getRuntime(), config('session.lifetime') * 60);
     }
 
     public function getRuntime() {
         if (!$this->sessionRuntime) {
-            $this->sessionRuntime = new SessionRuntime(Cache::get($this->getCacheKey(), []));
+            $this->sessionRuntime = Cache::get($this->getCacheKey(), new SessionRuntime());
         }
 
         return $this->sessionRuntime;

@@ -38,11 +38,10 @@ export function restock(productId, shopId) {
     }
 }
 
-export function restart(callback) {
+export function restart() {
     return dispatch => {
         axios.get(RESTART_URL)
             .then(() => {
-                callback && callback()
                 showSuccess("Перезапуск выполнен")
             }).catch(error => showError(error))
     }

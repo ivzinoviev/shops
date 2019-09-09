@@ -4,12 +4,17 @@ namespace App;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use SessionRuntimeSeeder;
 
 class SessionRuntime extends Model
 {
     protected $fillable = ['shops', 'storage'];
+
+    protected $attributes = [
+        'storage' => []
+    ];
 
     /** @var RuntimeDiff */
     protected $diff;
@@ -18,21 +23,11 @@ class SessionRuntime extends Model
     {
         $this->diff = new RuntimeDiff();
 
-        $attributes['storage'] = collect($attributes['storage'])->map(function ($storedProduct) {
-            if ($storedProduct instanceof StoredProduct) {
-                return $storedProduct;
-            }
-            return new StoredProduct($storedProduct);
-        });
+        if (!Arr::get($attributes, 'inited')) {
+            $attributes = array_merge(SessionRuntimeSeeder::getDefaultAttributes(), $attributes);
+        }
 
-        $attributes['shops'] = collect($attributes['shops'])->map(function ($shop) {
-            if ($shop instanceof Shop) {
-                return $shop;
-            }
-            new Shop($shop);
-        });
-
-        parent::__construct(array_merge(SessionRuntimeSeeder::getDefaultAttributes(),$attributes));
+        parent::__construct($attributes);
     }
 
     /**
@@ -119,7 +114,7 @@ class SessionRuntime extends Model
         $deletedShops = collect([new Shop([
             'id' => $shopId,
             'deletedAt' => Carbon::now()->toAtomString(),
-            'products' => []
+            'products' => collect()
         ])]);
 
         $this->shops = Shop::mergeCollections($this->shops, $deletedShops);
@@ -131,7 +126,7 @@ class SessionRuntime extends Model
         $newShops = collect([new Shop([
             'id' => $this->shops->reduce(function ($carry, $item) {
                 return $carry > $item->id ? $carry : $item->id;
-            }, 1),
+            }, 1) + 1,
             'name' => $data['name'],
             'productTypes' => ShopType::find($data['shopTypeId'])->productTypes->pluck('id')->toArray(),
         ])]);
