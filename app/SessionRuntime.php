@@ -4,63 +4,80 @@ namespace App;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
+use SessionRuntimeSeeder;
 
-// Requirement:
-// 1) Do not store runtime data in database
-// 2) Link runtime data lifecycle to session
-// Therefore no advantage to use Eloquent Models inside runtime
 class SessionRuntime extends Model
 {
     protected $fillable = ['shops', 'storage'];
 
-    protected $diff = [];
-
-    protected function addDiff($data = []) {
-        if (isset($data['storage'])) {
-            $data['storage'] = mergeProducts($this->getDiffByKey('storage'), $data['storage']);
-        }
-        if (isset($data['shops'])) {
-            $data['shops'] = mergeShops($this->getDiffByKey('shops'), $data['shops']);
-        }
-
-        $this->diff = array_merge($this->diff, $data);
-    }
-
-    protected function getDiffByKey($key = '') {
-        return isset($this->diff[$key]) ? $this->diff[$key] : [];
-    }
-
-    protected function findNonEmptyShops() {
-        return array_filter($this->getAttribute('shops'), function ($shop) {
-            return !isset($shop['deletedAt']) && isProductListNonEmpty($shop['products']);
-        });
-    }
-
-    protected function updateShopProducts($shopId, $updatedProducts) {
-        $shops = $this->getAttribute('shops');
-        $shopIndex = findIndexById($shopId, $shops);
-        data_set($shops, "{$shopIndex}.products", mergeProducts($shops[$shopIndex]['products'], $updatedProducts));
-        $this->setAttribute('shops', $shops);
-        $this->addDiff([
-            'shops' => [[
-                'id' => $shopId,
-                'products' => $updatedProducts
-            ]]
-        ]);
-    }
-
-    protected function updateStorageProducts($updatedProducts) {
-        $this->storage = mergeProducts($this->storage, $updatedProducts);
-
-        $this->addDiff([
-            'storage' => $updatedProducts
-        ]);
-    }
+    /** @var RuntimeDiff */
+    protected $diff;
 
     public function __construct(array $attributes = [])
     {
-        parent::__construct(array_merge(SessionRuntime::getDefaultAttributes(),$attributes));
+        $this->diff = new RuntimeDiff();
+
+        $attributes['storage'] = collect($attributes['storage'])->map(function ($storedProduct) {
+            if ($storedProduct instanceof StoredProduct) {
+                return $storedProduct;
+            }
+            return new StoredProduct($storedProduct);
+        });
+
+        $attributes['shops'] = collect($attributes['shops'])->map(function ($shop) {
+            if ($shop instanceof Shop) {
+                return $shop;
+            }
+            new Shop($shop);
+        });
+
+        parent::__construct(array_merge(SessionRuntimeSeeder::getDefaultAttributes(),$attributes));
+    }
+
+    /**
+     * @return Collection
+     */
+    protected function findNonEmptyShops() {
+        return $this->shops->filter(function (Shop $shop) {
+            return !$shop->isDeleted() && $shop->haveNonEmptyProducts();
+        });
+    }
+
+    protected function updateShopProducts($shopId, Collection $updatedProducts) {
+        $shop = $this->shops->firstWhere('id', $shopId);
+        $shop->updateProducts($updatedProducts);
+
+        $this->diff->addDiff(new RuntimeDiff([
+            'shops' => collect([new Shop([
+                'id' => $shopId,
+                'products' => $updatedProducts
+            ])])
+        ]));
+    }
+
+    protected function updateStorageProducts(Collection $updatedProducts) {
+        $this->storage = StoredProduct::mergeCollections($this->storage, $updatedProducts);
+
+        $this->diff->addDiff(new RuntimeDiff([
+            'storage' => $updatedProducts
+        ]));
+    }
+
+    /**
+     * @param int $shopId
+     * @return Shop
+     */
+    protected function findShopById($shopId) {
+        return $this->shops->first(function(Shop $shop) use ($shopId) {
+            return $shop->id === $shopId;
+        });
+    }
+
+    protected function findStoredProductById($productId) {
+        return $this->storage->first(function(StoredProduct $product) use ($productId) {
+            return $product->id === $productId;
+        });
     }
 
     public function getDiff() {
@@ -72,205 +89,70 @@ class SessionRuntime extends Model
         if (!count($nonEmptyShops)) {
             return;
         }
-        $shop = Arr::random($nonEmptyShops);
-        $product = Arr::random(findNonEmptyProducts($shop['products']));
+        $shop = $nonEmptyShops->random();
+        $product = $shop->findNonEmptyProducts()->random();
 
-        $product['count'] = --$product['count'];
+        $product->bought();
 
-        $product['lastBuyAt'] = Carbon::now()->toAtomString();
-
-        if ($product['count'] === 0) {
-            $product['soldOutAt'] = Carbon::now()->toAtomString();
-        }
-
-        $this->updateShopProducts($shop['id'], [$product]);
+        $this->updateShopProducts($shop->id, collect([$product]));
     }
 
     public function restock(Restock $restock) {
-        $shop = $this->shops[findIndexById($restock->getAttribute('shopId'), $this->getAttribute('shops'))];
-        $storageProduct = $this->storage[findIndexById($restock->getAttribute('productId'), $this->getAttribute('storage'))];
-        $productIndexInShop = findIndexById($restock->productId, $shop['products']);
-        $shopProduct = is_numeric($productIndexInShop) ? $shop['products'][$productIndexInShop] : [
-            'id' => $restock->productId,
-            'count' => 0
-        ];
+        $shop = $this->findShopById($restock->shopId);
+        $storageProduct = $this->findStoredProductById( $restock->productId);
+        $shopProduct = $shop->getProductById($restock->productId);
 
-        $storageProduct['count'] = $storageProduct['count'] - $restock->amount;
-        $shopProduct['count'] = $shopProduct['count'] + $restock->amount;
-        $shopProduct['lastAddAt'] = Carbon::now()->toAtomString();
-        if (isset($shopProduct['soldOutAt'])) {
-            $shopProduct['soldOutAt'] = null;
-        }
+        $storageProduct->remove($restock->amount);
+        $shopProduct->add($restock->amount);
 
-        $this->updateShopProducts($shop['id'], [$shopProduct]);
-
-        $this->updateStorageProducts([$storageProduct]);
+        $this->updateShopProducts($shop->id, collect([$shopProduct]));
+        $this->updateStorageProducts(collect([$storageProduct]));
     }
 
     public function deleteShop($shopId) {
-        $shopIndex = findIndexById($shopId, $this->shops);
-
-        $this->updateStorageProducts(array_map(function($shopProduct) {
-            $storageProduct = $this->storage[findIndexById($shopProduct['id'], $this->storage)];
-            $storageProduct['count'] = $storageProduct['count'] + $shopProduct['count'];
+        $this->updateStorageProducts($this->findShopById($shopId)->products->map(function(StoredProduct $shopProduct) {
+            $storageProduct = $this->findStoredProductById($shopProduct->id);
+            $storageProduct->add($shopProduct->count);
             return $storageProduct;
-        }, $this->shops[$shopIndex]['products']));
+        }));
 
-        $deletedShop = [
+        $deletedShops = collect([new Shop([
             'id' => $shopId,
             'deletedAt' => Carbon::now()->toAtomString(),
             'products' => []
-        ];
+        ])]);
 
-        $this->shops = mergeShops($this->shops, [$deletedShop]);
+        $this->shops = Shop::mergeCollections($this->shops, $deletedShops);
 
-        $this->addDiff(['shops' => [$deletedShop]]);
+        $this->diff->addDiff(new RuntimeDiff(['shops' => $deletedShops]));
     }
 
     public function createShop($data) {
-        $newShop = [
-            'id' => max(array_column($this->shops, 'id')) + 1,
-            'products' => [],
+        $newShops = collect([new Shop([
+            'id' => $this->shops->reduce(function ($carry, $item) {
+                return $carry > $item->id ? $carry : $item->id;
+            }, 1),
             'name' => $data['name'],
             'productTypes' => ShopType::find($data['shopTypeId'])->productTypes->pluck('id')->toArray(),
-        ];
-        $newShop['products'] = [];
-        $this->shops = mergeShops($this->shops, [$newShop]);
+        ])]);
 
-        $this->addDiff(['shops' => [$newShop]]);
+        $this->shops = Shop::mergeCollections($this->shops, $newShops);
+
+        $this->diff->addDiff(new RuntimeDiff(['shops' => $newShops]));
     }
 
     public function getStorageStockCount($productId) {
-        $stock = $this->storage[findIndexById($productId, $this->storage)];
-        return $stock ? $stock['count'] : 0;
+        $product = $this->findStoredProductById($productId);
+        return $product ? $product->count : 0;
     }
 
     public function isShopExists($shopId) {
-        $shop = $this->shops[findIndexById($shopId, $this->getAttribute('shops'))];
-
-        return is_array($shop) && !isset($shop['deletedAt']);
+        $shop = $this->findShopById($shopId);
+        return $shop && !$shop->isDeleted();
     }
 
     public function isShopAllowProduct($shopId, $productId) {
-        $shop = $this->shops[findIndexById($shopId, $this->shops)];
-        $product = Product::find($productId);
-        if ($shop && $product) {
-            return in_array($product->getAttribute('product_type_id'), $shop['productTypes']);
-        }
-        return false;
+        $shop = $this->findShopById($shopId);
+        return $shop && $shop->isAllowProduct($productId);
     }
-
-    static private function getDefaultAttributes() {
-        return [
-            'shops' =>  [
-                [
-                    'id' => 1,
-                    'productTypes' => [ProductType::PROD_TYPE_FOOD],
-                    'name' => 'Продукты',
-                    'products' => Product::where(['product_type_id' => ProductType::PROD_TYPE_FOOD])->get()
-                        ->map(function(Product $product) {
-                            return [
-                                'id' => $product->getAttribute('id'),
-                                'count' => 100
-                            ];
-                    })->toArray()
-                ],
-                [
-                    'id' => 2,
-                    'productTypes' => [ProductType::PROD_TYPE_BUILD],
-                    'name' => 'Строительный',
-                    'products' => Product::where(['product_type_id' => ProductType::PROD_TYPE_BUILD])->get()
-                        ->map(function(Product $product) {
-                            return [
-                                'id' => $product->getAttribute('id'),
-                                'count' => 100
-                            ];
-                        })->toArray()
-                ],
-                [
-                    'id' => 3,
-                    'productTypes' => [ProductType::PROD_TYPE_HOME],
-                    'name' => 'Всё для дома',
-                    'products' => Product::where(['product_type_id' => ProductType::PROD_TYPE_HOME])->get()
-                        ->map(function(Product $product) {
-                            return [
-                                'id' => $product->getAttribute('id'),
-                                'count' => 100
-                            ];
-                        })->toArray()
-                ],
-                [
-                    'id' => 4,
-                    'productTypes' => [ProductType::PROD_TYPE_FOOD, ProductType::PROD_TYPE_HOME],
-                    'name' => 'Супермаркет',
-                    'products' => Product::whereIn('product_type_id', [ProductType::PROD_TYPE_FOOD, ProductType::PROD_TYPE_HOME])->get()
-                        ->map(function(Product $product) {
-                            return [
-                                'id' => $product->getAttribute('id'),
-                                'count' => 100
-                            ];
-                        })->toArray()
-                ],
-            ],
-            'storage' => Product::all()->map(function(Product $product) {
-                return [
-                    'id' => $product->getAttribute('id'),
-                    'count' => 1000
-                ];
-            })->toArray()
-        ];
-    }
-}
-
-function mergeShops(array $before, array $updated) {
-    $updatedFiltred = array_filter($updated, function ($updatedItem) use ($before) {
-        return !in_array($updatedItem['id'], array_column($before, 'id'));
-    });
-
-    $beforeUpdated = array_map(function($beforeItem) use ($updated) {
-        $updatedShopIndex = array_search($beforeItem['id'], array_column($updated, 'id'));
-
-        if (is_numeric($updatedShopIndex)) {
-            // If deleted - other data unnecessary
-            if (isset($updated[$updatedShopIndex]['deletedAt'])) {
-                return $updated[$updatedShopIndex];
-            }
-
-            if (isset($updated[$updatedShopIndex]['products'])) {
-                $beforeItem['products'] = mergeProducts($beforeItem['products'], $updated[$updatedShopIndex]['products']);
-            }
-
-            return array_merge($beforeItem,Arr::except($updated[$updatedShopIndex], 'products'));
-        }
-
-        return $beforeItem;
-    }, $before);
-
-    return array_merge($beforeUpdated, $updatedFiltred);
-}
-
-function mergeProducts(array $before, array $updated) {
-    $beforeFiltred = array_filter($before, function ($beforeItem) use ($updated) {
-        return !in_array($beforeItem['id'], array_column($updated, 'id'));
-    });
-    return array_merge($beforeFiltred, $updated);
-}
-
-function isProductListNonEmpty($products = []) {
-    foreach(array_column($products, 'count') as $count) {
-        if ($count > 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function findNonEmptyProducts($products = []) {
-    return array_filter($products, function($product) {
-        return $product['count'] > 0;
-    });
-}
-
-function findIndexById($id, array $set) {
-    return array_search($id, array_column($set, 'id'));
 }

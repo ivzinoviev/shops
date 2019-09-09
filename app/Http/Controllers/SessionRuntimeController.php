@@ -20,7 +20,7 @@ class SessionRuntimeController extends Controller
             $runtime->shopping();
         });
 
-        event(new SessionTick($session->getId(), $session->getRuntime()->getDiff()));
+        event(new SessionTick($session->getId(), $session->getRuntime()->getDiff()->toArray()));
     }
 
     public function restock(Request $request) {
@@ -43,7 +43,7 @@ class SessionRuntimeController extends Controller
             $runtime->restock($restock);
         });
 
-        event(new SessionTick($session->getId(), $session->getRuntime()->getDiff()));
+        event(new SessionTick($session->getId(), $session->getRuntime()->getDiff()->toArray()));
     }
 
     public function restart(Request $request) {
@@ -68,7 +68,7 @@ class SessionRuntimeController extends Controller
             $runtime->deleteShop((int)$validatedData['shopId']);
         });
 
-        event(new SessionTick($session->getId(), $session->getRuntime()->getDiff()));
+        event(new SessionTick($session->getId(), $session->getRuntime()->getDiff()->toArray()));
     }
 
     public function shopCreate(Request $request) {
@@ -85,6 +85,6 @@ class SessionRuntimeController extends Controller
             $runtime->createShop($validatedData);
         });
 
-        event(new SessionTick($session->getId(), $session->getRuntime()->getDiff()));
+        event(new SessionTick($session->getId(), $session->getRuntime()->getDiff()->toArray()));
     }
 }

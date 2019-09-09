@@ -47,7 +47,7 @@ class RunTicks extends Command
             usleep(1000);
 
             if (microtime(true) >= $nextTime) {
-                Artisan::call('run:tick'); // TODO: use queue!
+                Artisan::call('run:tick'); // TODO: can use queue
                 $nextTime = microtime(true) + self::TICK_RATE;
             }
         }

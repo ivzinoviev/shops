@@ -46,6 +46,6 @@ export default class ShopManagement extends React.Component {
                 onUpdate={({data}) => {this.props.handleSessionTick(data)}}
             /> }
         </div>
-        // </DragDropContext>
+        </DragDropContext>
     }
 }
