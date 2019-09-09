@@ -13,14 +13,14 @@ export default class ShopManagement extends React.Component {
 
     render() {
         return <DragDropContext onDragEnd={this.props.handleDrop}>
-            <div className="container pt-5">
+            <div className="container pt-2">
             <div className="row">
-                <div className="col-8">
+                <div className="col-md-8 col-sm-12 pt-3">
                     <ProductsStorage
                         storage={this.props.storage}
                     />
                 </div>
-                <div className="col-4">
+                <div className="col-md-4 col-sm-12 pt-3">
                     <RestartButton
                         handleRestart={this.props.handleRestart}
                     />
