@@ -24,7 +24,7 @@
     "dependencies": {
         "bootstrap": "^4.3.1",
         "classnames": "^2.2.6",
-        "moment": "^2.24.0",
+        "moment": "^2.29.2",
         "pusher-js": "^5.0.1",
         "react-beautiful-dnd": "^11.0.5",
         "react-component-octicons": "^1.8.0",
